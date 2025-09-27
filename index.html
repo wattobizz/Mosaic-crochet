@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mosaic Crochet Pattern Maker (Overlay Mosaic)</title>
+  <style>
+    :root {
+      --bg: #0f1220;
+      --panel: #171a2a;
+      --ink: #e9ecf1;
+      --muted: #99a3b3;
+      --accent: #7ad1ff;
+      --accent-2: #9affc3;
+      --danger: #ff8a8a;
+      --grid: #2a2f45;
+      --grid-dark: #1b2033;
+      --highlight: #1f273c;
+      --cell-size: 18px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 14px/1.3 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #202538;
+      background: #0e1120;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    header h1 { font-size: 16px; margin: 0; letter-spacing: .3px; color: var(--accent); }
+    header .sub { color: var(--muted); }
+    .spacer { flex: 1 1 auto; }
+    .wrap {
+      display: grid;
+      grid-template-columns: minmax(280px, 320px) 1fr minmax(320px, 380px);
+      gap: 12px;
+      padding: 12px;
+      flex: 1 1 auto;
+      overflow: hidden;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid #222840;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .panel h2 {
+      font-size: 13px;
+      margin: 0;
+      padding: 10px 12px;
+      background: #121528;
+      border-bottom: 1px solid #202538;
+      color: var(--accent-2);
+    }
+    .panel .body { padding: 12px; overflow: auto; }
+    .controls label { display: block; margin: 10px 0 6px; color: var(--muted); font-size: 12px; letter-spacing: .3px; text-transform: uppercase; }
+    .row { display:flex; gap:10px; align-items:center; margin-bottom:8px; flex-wrap: wrap; }
+    .row--import {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 6px;
+    }
+    .row--import button {
+      width: 100%;
+    }
+    .row--import .hint {
+      margin: 0;
+    }
+    input[type="number"], select, input[type="text"] {
+      width: 100%;
+      padding:8px 10px;
+      background:#101424;
+      border:1px solid #27304d;
+      color:var(--ink);
+      border-radius:8px;
+      font-size: 14px;
+    }
+    input[type="color"] {
+      width: 100%;
+      height: 38px;
+      padding:0;
+      border:1px solid #27304d;
+      background:#101424;
+      border-radius:8px;
+    }
+    button {
+      background: #19203a;
+      color: var(--ink);
+      border:1px solid #2a3458;
+      padding:8px 12px;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight: 600;
+      letter-spacing: .3px;
+    }
+    button:hover { border-color:#3a4a7f; }
+    button.primary { background:#11324a; border-color:#2e6a8f; }
+    button.ghost { background: transparent; border-color:#2a3458; }
+    button.danger { background:#3a1822; border-color:#6b1f2f; color:#ffd9df; }
+    button:disabled { opacity: .55; cursor:not-allowed; }
+    .grid-panel { display:flex; flex-direction: column; }
+    .grid-wrap { padding: 12px; flex:1 1 auto; overflow:auto; }
+    .canvas-wrap {
+      background: linear-gradient(180deg,#0f1220 0,#0b0e1a 100%);
+      border-top:1px solid #202538;
+      border-bottom:1px solid #202538;
+      padding: 12px 0;
+    }
+    .grid-shell {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      grid-template-rows: auto 1fr;
+      gap: 0;
+      width: fit-content;
+      margin: 0 auto;
+      border: 1px solid #202538;
+      border-radius: 12px;
+      background: #0d111f;
+      box-shadow: 0 12px 24px rgba(0,0,0,.25);
+    }
+    .grid-shell .corner {
+      grid-column: 1 / 2;
+      grid-row: 1 / 2;
+      min-width: 30px;
+      min-height: 30px;
+      border-bottom:1px solid #1c2234;
+      border-right:1px solid #1c2234;
+    }
+    .col-labels {
+      grid-column: 2 / 3;
+      grid-row: 1 / 2;
+      display: grid;
+      background:#101424;
+      border-bottom:1px solid #1c2234;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: .2px;
+    }
+    .row-labels {
+      grid-column: 1 / 2;
+      grid-row: 2 / 3;
+      display: grid;
+      background:#101424;
+      border-right:1px solid #1c2234;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: .2px;
+    }
+    .col-label, .row-label {
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-width: var(--cell-size);
+      min-height: var(--cell-size);
+      padding: 2px 4px;
+      border-right:1px solid #1c2234;
+      border-bottom:1px solid #1c2234;
+    }
+    .col-label:last-child { border-right:none; }
+    .row-label:last-child { border-bottom:none; }
+    .grid {
+      grid-column: 2 / 3;
+      grid-row: 2 / 3;
+      display: grid;
+      background: #0b0f1e;
+      --cell-size: var(--cell-size);
+      border-right:1px solid #1c2234;
+      border-bottom:1px solid #1c2234;
+      touch-action: none;
+      user-select: none;
+    }
+    .grid__cell {
+      width: var(--cell-size);
+      height: var(--cell-size);
+      border-right:1px solid var(--grid);
+      border-bottom:1px solid var(--grid);
+      background: #101426;
+      position: relative;
+      transition: background .15s ease;
+    }
+    .grid__cell:last-child {
+      border-right: none;
+    }
+    .grid__cell.x {
+      background: #17213a;
+    }
+    .grid__cell.x::before,
+    .grid__cell.x::after {
+      content: "";
+      position: absolute;
+      top: 4px;
+      bottom: 4px;
+      left: 4px;
+      right: 4px;
+      border-top: 2px solid #9fd1ff;
+    }
+    .grid__cell.x::before { transform: rotate(45deg); }
+    .grid__cell.x::after { transform: rotate(-45deg); }
+    .grid__cell.highlight {
+      box-shadow: inset 0 0 0 2px rgba(122,209,255,.6);
+    }
+    .grid--none .grid__cell {
+      border-right: none;
+      border-bottom: none;
+    }
+    .grid__cell.bold-right { border-right:2px solid #394568; }
+    .grid__cell.bold-bottom { border-bottom:2px solid #394568; }
+    .grid__cell:nth-child(n+1):hover { background:#1b2440; }
+    .tools { display:flex; gap:8px; flex-wrap: wrap; margin: 8px 0 0; }
+    .hint { color: var(--muted); font-size: 12px; }
+    .palette-item { display:grid; grid-template-columns: 42px 1fr 70px; gap:8px; align-items:center; margin-bottom:10px; }
+    .palette-item small { color:var(--muted); font-size:11px; letter-spacing: .2px; }
+    .badge { display:inline-block; padding:2px 6px; border-radius:6px; background:#1c233a; border:1px solid #27304d; color:#c6d8ff; font-size:12px; }
+    .ins-output {
+      width:100%;
+      min-height:240px;
+      background:#0f1324;
+      border:1px solid #27304d;
+      border-radius:8px;
+      padding:10px;
+      color:var(--ink);
+      white-space:pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .muted { color: var(--muted); }
+    .small { font-size:12px; letter-spacing:.2px; }
+    .right { text-align:right; }
+    .inline { display:inline-flex; gap:8px; align-items:center; }
+    .row-plan { max-height: 260px; overflow: auto; border:1px solid #223; border-radius:8px; }
+    table { width:100%; border-collapse: collapse; }
+    th, td { border-bottom:1px dashed #2a2f45; padding:6px; text-align:left; }
+    th { color: var(--muted); font-weight:600; font-size: 12px; }
+    td { font-size: 13px; }
+    tbody tr:last-child td { border-bottom:none; }
+    .row-plan__color {
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .row-plan__swatch {
+      width:16px;
+      height:16px;
+      border-radius:4px;
+      border:1px solid #27304d;
+      background:#fff;
+    }
+    .row-plan__toggle {
+      background: transparent;
+      color: var(--accent);
+      border-color: rgba(122,209,255,.25);
+      font-size: 12px;
+      padding:4px 6px;
+    }
+    .notice { background:#0f1a26; border:1px solid #253a54; padding:8px 10px; border-radius:8px; color:#cfe4ff; font-size:13px; margin-bottom:12px; }
+    .legend { display:flex; gap:12px; align-items:center; flex-wrap:wrap; color:#cfe4ff; font-size:12px; padding:8px 10px; background:#10192c; border-radius:8px; border:1px solid #253250; }
+    .legend .box { width:16px; height:16px; border:1px solid #4a567a; background:#0b0f1e; display:inline-block; margin-right:6px; }
+    .legend .xbox { position:relative; width:16px; height:16px; border:1px solid #4a567a; background:#0b0f1e; display:inline-block; margin-right:6px; }
+    .legend .xbox::before, .legend .xbox::after {
+      content:""; position:absolute; left:2px; right:2px; top:2px; bottom:2px; border-top:2px solid #9fd1ff; transform: rotate(45deg);
+    }
+    .legend .xbox::after { transform: rotate(-45deg); }
+    .hr { height:1px; background:#202538; margin:12px 0; }
+    .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background:#111528; border:1px solid #27304d; padding:0 6px; border-radius:6px; color:#cfe4ff; }
+    .grid-keys { color:#cfe4ff; font-size:12px; }
+    .pill { padding:2px 8px; border-radius:999px; background:#141a2e; border:1px solid #2a3458; color:#b8c7ff; font-size:12px; }
+    .grid__cell:last-child { border-right: none; }
+    .grid:last-child .grid__cell { border-bottom: none; }
+    .row-plan button { white-space: nowrap; }
+    .downloads {
+      display:flex;
+      gap:8px;
+      flex-wrap: wrap;
+      margin-top:12px;
+    }
+    .downloads button {
+      flex:1 1 150px;
+    }
+    .footer { color: var(--muted); padding: 8px 12px; font-size: 12px; border-top: 1px solid #202538; text-align: center; }
+    .stats {
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap:8px;
+      margin-bottom:12px;
+    }
+    .stat {
+      background:#10192c;
+      border:1px solid #253250;
+      border-radius:8px;
+      padding:8px 10px;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .stat span:first-child { font-size:11px; letter-spacing:.2px; color:var(--muted); text-transform: uppercase; }
+    .stat span:last-child { font-size:16px; font-weight:600; color:var(--accent-2); }
+    @media (max-width: 1200px) {
+      .wrap { grid-template-columns: minmax(260px, 320px) 1fr; grid-template-rows: auto auto; }
+      .wrap .panel:nth-child(3) { grid-column: 1 / -1; }
+    }
+    @media (max-width: 900px) {
+      .wrap { grid-template-columns: 1fr; }
+      .panel { order: initial; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Mosaic Crochet Pattern Maker</h1>
+  <span class="sub">Overlay mosaic: X = drop-down dc (front), blank = sc in back loop.</span>
+  <span class="spacer"></span>
+  <span class="grid-keys">Tip: <span class="kbd">Click</span> toggle X • <span class="kbd">Shift+Drag</span> draw line • <span class="kbd">Ctrl/Cmd+Z</span> undo • <span class="kbd">Ctrl/Cmd+Y</span> redo</span>
+</header>
+
+<div class="wrap">
+  <section class="panel">
+    <h2>Pattern Setup</h2>
+    <div class="body controls">
+      <div class="row">
+        <div style="flex:1">
+          <label for="rows">Rows</label>
+          <input id="rows" type="number" min="1" max="400" value="24">
+        </div>
+        <div style="flex:1">
+          <label for="cols">Columns (sts)</label>
+          <input id="cols" type="number" min="1" max="400" value="40">
+        </div>
+      </div>
+      <div class="row">
+        <div style="flex:1">
+          <label for="cellSize">Cell Size (px)</label>
+          <input id="cellSize" type="number" min="10" max="40" value="18">
+        </div>
+        <div style="flex:1">
+          <label for="gridMode">Grid Lines</label>
+          <select id="gridMode">
+            <option value="normal" selected>Every cell</option>
+            <option value="bold5">Bold every 5</option>
+            <option value="bold10">Bold every 10</option>
+            <option value="none">No grid</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <button id="applySize" class="primary">Apply Size</button>
+        <button id="clearAll" class="ghost">Clear All</button>
+        <button id="undoBtn" class="ghost" disabled>Undo</button>
+        <button id="redoBtn" class="ghost" disabled>Redo</button>
+      </div>
+      <div class="row row--import">
+        <button id="importImageBtn" class="ghost" type="button">Import Image&hellip;</button>
+        <input type="file" id="imageLoader" accept="image/*" hidden>
+        <span class="hint">Image is scaled to the current grid; darker pixels become X stitches.</span>
+      </div>
+      <div class="hr"></div>
+      <h3 class="small" style="margin:0 0 8px 0; color:var(--accent-2)">Colors &amp; Row Plan</h3>
+      <div class="palette">
+        <div class="palette-item">
+          <input type="color" id="colorA" value="#2c8bff">
+          <div>
+            <small>Main Color</small>
+            <input type="text" id="colorAName" value="Color A">
+          </div>
+          <span class="badge">Row 1</span>
+        </div>
+        <div class="palette-item">
+          <input type="color" id="colorB" value="#f0c14b">
+          <div>
+            <small>Contrast Color</small>
+            <input type="text" id="colorBName" value="Color B">
+          </div>
+          <span class="badge">Row 2</span>
+        </div>
+      </div>
+      <div class="row" style="justify-content:space-between;">
+        <button id="resetPlan" class="ghost">Reset Alternating</button>
+        <span class="hint">Click a row color to toggle A/B.</span>
+      </div>
+      <div class="row-plan">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:60px;">Row</th>
+              <th style="width:60px;">Side</th>
+              <th>Color</th>
+              <th style="width:70px;" class="right">Toggle</th>
+            </tr>
+          </thead>
+          <tbody id="rowPlanBody"></tbody>
+        </table>
+      </div>
+      <p class="hint" style="margin-top:8px;">Row 1 is worked at the bottom of the chart (right side). Rows alternate RS/WS automatically.</p>
+    </div>
+  </section>
+
+  <section class="panel grid-panel">
+    <h2>Chart</h2>
+    <div class="grid-wrap">
+      <div class="grid-shell">
+        <div class="corner"></div>
+        <div class="col-labels" id="colLabels"></div>
+        <div class="row-labels" id="rowLabels"></div>
+        <div class="grid" id="grid" role="grid" aria-label="Mosaic chart"></div>
+      </div>
+    </div>
+    <div class="canvas-wrap">
+      <div class="legend">
+        <span><span class="box"></span>Blank = sc in back loop</span>
+        <span><span class="xbox"></span>X = drop-down dc (front)</span>
+        <span><span class="pill">Esc</span> cancels paint</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Row Instructions</h2>
+    <div class="body">
+      <div class="notice">Instructions are generated from the chart. Adjust stitches per row or drop-downs and the written plan will update automatically.</div>
+      <div class="stats">
+        <div class="stat">
+          <span>Total Rows</span>
+          <span id="statRows">24</span>
+        </div>
+        <div class="stat">
+          <span>Sts / Row</span>
+          <span id="statStitches">40</span>
+        </div>
+        <div class="stat">
+          <span>Total Cells</span>
+          <span id="statCells">960</span>
+        </div>
+        <div class="stat">
+          <span>Filled X</span>
+          <span id="statX">0</span>
+        </div>
+      </div>
+      <textarea id="instructionsOutput" class="ins-output" spellcheck="false" readonly></textarea>
+      <div class="downloads">
+        <button id="exportTxtBtn" type="button" class="ghost">Export TXT</button>
+        <button id="exportPdfBtn" type="button" class="ghost">Export PDF</button>
+      </div>
+      <p class="muted" style="margin-top:10px;">Tip: Copy the text into your pattern notes. Each row lists the side (RS/WS), working color, and stitch runs with repeats combined.</p>
+    </div>
+  </section>
+</div>
+
+<footer class="footer">Built for overlay mosaic crochet. Chart cells show drop-down double crochets (X) or single crochets in back loop only (blank).</footer>
+
+<script>
+  const rowsInput = document.getElementById('rows');
+  const colsInput = document.getElementById('cols');
+  const cellSizeInput = document.getElementById('cellSize');
+  const gridModeSelect = document.getElementById('gridMode');
+  const applySizeBtn = document.getElementById('applySize');
+  const clearAllBtn = document.getElementById('clearAll');
+  const undoBtn = document.getElementById('undoBtn');
+  const redoBtn = document.getElementById('redoBtn');
+  const gridEl = document.getElementById('grid');
+  const colLabelsEl = document.getElementById('colLabels');
+  const rowLabelsEl = document.getElementById('rowLabels');
+  const rowPlanBody = document.getElementById('rowPlanBody');
+  const colorAInput = document.getElementById('colorA');
+  const colorBInput = document.getElementById('colorB');
+  const colorANameInput = document.getElementById('colorAName');
+  const colorBNameInput = document.getElementById('colorBName');
+  const resetPlanBtn = document.getElementById('resetPlan');
+  const instructionsOutput = document.getElementById('instructionsOutput');
+  const importImageBtn = document.getElementById('importImageBtn');
+  const imageLoaderInput = document.getElementById('imageLoader');
+  const exportTxtBtn = document.getElementById('exportTxtBtn');
+  const exportPdfBtn = document.getElementById('exportPdfBtn');
+  const statRows = document.getElementById('statRows');
+  const statStitches = document.getElementById('statStitches');
+  const statCells = document.getElementById('statCells');
+  const statX = document.getElementById('statX');
+
+  let rows = parseInt(rowsInput.value, 10);
+  let cols = parseInt(colsInput.value, 10);
+  let cellSize = parseInt(cellSizeInput.value, 10);
+  let gridMode = gridModeSelect.value;
+
+  let grid = createEmptyGrid(rows, cols);
+  let rowColorPlan = createDefaultRowPlan(rows);
+
+  let history = [];
+  let historyIndex = -1;
+  let isPointerDown = false;
+  let isShiftPaint = false;
+  let paintValue = 1;
+  let hasMutated = false;
+
+  const cellRefs = new Map();
+
+  function createEmptyGrid(r, c) {
+    return Array.from({ length: r }, () => Array(c).fill(0));
+  }
+
+  function createDefaultRowPlan(r) {
+    return Array.from({ length: r }, (_, idx) => (idx % 2 === 0 ? 'A' : 'B'));
+  }
+
+  function renderGrid() {
+    gridEl.innerHTML = '';
+    colLabelsEl.innerHTML = '';
+    rowLabelsEl.innerHTML = '';
+    cellRefs.clear();
+
+    gridEl.style.setProperty('--cell-size', cellSize + 'px');
+    gridEl.style.gridTemplateColumns = `repeat(${cols}, var(--cell-size))`;
+    gridEl.style.gridTemplateRows = `repeat(${rows}, var(--cell-size))`;
+    gridEl.className = `grid grid--${gridMode}`;
+
+    colLabelsEl.style.gridTemplateColumns = `repeat(${cols}, var(--cell-size))`;
+    rowLabelsEl.style.gridTemplateRows = `repeat(${rows}, var(--cell-size))`;
+
+    for (let c = 1; c <= cols; c++) {
+      const label = document.createElement('div');
+      label.className = 'col-label';
+      label.textContent = c;
+      colLabelsEl.appendChild(label);
+    }
+
+    for (let r = rows; r >= 1; r--) {
+      const label = document.createElement('div');
+      label.className = 'row-label';
+      const planIdx = r - 1;
+      const colorCode = rowColorPlan[planIdx];
+      label.innerHTML = `<span>${r}</span><br><small>${colorCode}</small>`;
+      rowLabelsEl.appendChild(label);
+    }
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'grid__cell';
+        cell.dataset.row = String(r);
+        cell.dataset.col = String(c);
+        if (grid[r][c] === 1) {
+          cell.classList.add('x');
+        }
+        if (gridMode === 'bold5' && ((c + 1) % 5 === 0)) {
+          cell.classList.add('bold-right');
+        }
+        if (gridMode === 'bold5' && ((rows - r) % 5 === 0)) {
+          cell.classList.add('bold-bottom');
+        }
+        if (gridMode === 'bold10' && ((c + 1) % 10 === 0)) {
+          cell.classList.add('bold-right');
+        }
+        if (gridMode === 'bold10' && ((rows - r) % 10 === 0)) {
+          cell.classList.add('bold-bottom');
+        }
+        cell.addEventListener('pointerdown', handlePointerDown);
+        cell.addEventListener('pointerenter', handlePointerEnter);
+        cellRefs.set(`${r}-${c}`, cell);
+        gridEl.appendChild(cell);
+      }
+    }
+  }
+
+  function handlePointerDown(event) {
+    event.preventDefault();
+    const cell = event.currentTarget;
+    const row = parseInt(cell.dataset.row, 10);
+    const col = parseInt(cell.dataset.col, 10);
+
+    isPointerDown = true;
+    isShiftPaint = event.shiftKey;
+    hasMutated = false;
+
+    if (isShiftPaint) {
+      paintValue = grid[row][col] === 1 ? 0 : 1;
+      hasMutated = applyPaint(row, col, paintValue) || hasMutated;
+    } else {
+      hasMutated = toggleCell(row, col) || hasMutated;
+    }
+  }
+
+  function handlePointerEnter(event) {
+    if (!isPointerDown || !isShiftPaint) return;
+    const cell = event.currentTarget;
+    const row = parseInt(cell.dataset.row, 10);
+    const col = parseInt(cell.dataset.col, 10);
+    hasMutated = applyPaint(row, col, paintValue) || hasMutated;
+  }
+
+  function toggleCell(row, col) {
+    const newValue = grid[row][col] === 1 ? 0 : 1;
+    return applyPaint(row, col, newValue, true);
+  }
+
+  function applyPaint(row, col, value, force = false) {
+    if (!force && grid[row][col] === value) {
+      return false;
+    }
+    grid[row][col] = value;
+    const cell = cellRefs.get(`${row}-${col}`);
+    if (cell) {
+      if (value === 1) {
+        cell.classList.add('x');
+      } else {
+        cell.classList.remove('x');
+      }
+    }
+    updateStats();
+    updateInstructions();
+    return true;
+  }
+
+  function handlePointerUp() {
+    if (isPointerDown && hasMutated) {
+      commitHistory();
+    }
+    isPointerDown = false;
+    isShiftPaint = false;
+    hasMutated = false;
+  }
+
+  function handleKeyDown(event) {
+    if (event.key === 'Escape') {
+      isPointerDown = false;
+      isShiftPaint = false;
+      hasMutated = false;
+    }
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+      event.preventDefault();
+      undo();
+    }
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') {
+      event.preventDefault();
+      redo();
+    }
+  }
+
+  function updateStats() {
+    statRows.textContent = rows;
+    statStitches.textContent = cols;
+    statCells.textContent = rows * cols;
+    const filled = grid.reduce((sum, row) => sum + row.filter((cell) => cell === 1).length, 0);
+    statX.textContent = filled;
+  }
+
+  function buildInstructionLines() {
+    const colorALabel = colorANameInput.value || 'Color A';
+    const colorBLabel = colorBNameInput.value || 'Color B';
+    const header = `Mosaic Crochet Pattern (${rows} rows x ${cols} sts)`;
+    const colorsLine = `Colors: ${colorALabel} ${colorAInput.value} / ${colorBLabel} ${colorBInput.value}`;
+    const instructions = instructionsOutput.value ? instructionsOutput.value.split('\n') : [];
+    return [header, colorsLine, ''].concat(instructions);
+  }
+
+  function updateInstructions() {
+    const instructions = [];
+    for (let i = 0; i < rows; i++) {
+      const rowNumber = i + 1;
+      const gridRowIndex = rows - rowNumber;
+      const rowData = grid[gridRowIndex];
+      const side = rowNumber % 2 === 1 ? 'RS' : 'WS';
+      const colorCode = rowColorPlan[rowNumber - 1] || 'A';
+      const colorName = colorCode === 'A' ? colorANameInput.value || 'Color A' : colorBNameInput.value || 'Color B';
+      const segments = compressRow(rowData);
+      instructions.push(`Row ${rowNumber} (${side}, ${colorName}): ${segments.join(', ')}`);
+    }
+    instructionsOutput.value = instructions.join('\n');
+  }
+
+  function compressRow(rowData) {
+    const segments = [];
+    if (rowData.length === 0) return segments;
+    let current = rowData[0];
+    let count = 1;
+    const pushSegment = (value, count) => {
+      const stitch = value === 1 ? 'X (dc)' : 'sc';
+      if (count === 1) {
+        segments.push(stitch);
+      } else {
+        segments.push(`${stitch} x${count}`);
+      }
+    };
+    for (let idx = 1; idx < rowData.length; idx++) {
+      if (rowData[idx] === current) {
+        count += 1;
+      } else {
+        pushSegment(current, count);
+        current = rowData[idx];
+        count = 1;
+      }
+    }
+    pushSegment(current, count);
+    return segments;
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  }
+
+  function exportInstructionsAsTxt() {
+    updateInstructions();
+    const lines = buildInstructionLines();
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+    const filename = `mosaic_instructions_${rows}x${cols}.txt`;
+    downloadBlob(blob, filename);
+  }
+
+  function exportInstructionsAsPdf() {
+    updateInstructions();
+    const lines = buildInstructionLines();
+    const docTitle = `${document.title || 'Mosaic Crochet Pattern'} (${rows}x${cols})`;
+    const blob = createPdfBlob(docTitle, lines);
+    const filename = `mosaic_instructions_${rows}x${cols}.pdf`;
+    downloadBlob(blob, filename);
+  }
+
+  function escapePdfText(text) {
+    return String(text)
+      .replace(/\\/g, '\\\\')
+      .replace(/\(/g, '\\(')
+      .replace(/\)/g, '\\)')
+      .replace(/\r?\n/g, ' ');
+  }
+
+  function createPdfBlob(title, lines) {
+    const safeLines = lines && lines.length ? lines : ['No instructions available.'];
+    const contentLines = ['BT', '/F1 12 Tf', '16 TL', '72 770 Td', `(${escapePdfText(title)}) Tj`, 'T*', 'T*'];
+    safeLines.forEach((line) => {
+      contentLines.push(`(${escapePdfText(line)}) Tj`);
+      contentLines.push('T*');
+    });
+    if (safeLines.length) {
+      contentLines.pop();
+    }
+    contentLines.push('ET');
+    const contentStream = contentLines.join('\n');
+
+    const objects = [
+      '1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj',
+      '2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj',
+      '3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj',
+      `4 0 obj << /Length ${contentStream.length} >> stream\n${contentStream}\nendstream\nendobj`,
+      '5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj',
+      `6 0 obj << /Title (${escapePdfText(title)}) >> endobj`,
+    ];
+
+    let pdf = '%PDF-1.4\n';
+    let offset = pdf.length;
+    const xrefEntries = ['0000000000 65535 f \n'];
+    let body = '';
+    objects.forEach((obj) => {
+      xrefEntries.push(offset.toString().padStart(10, '0') + ' 00000 n \n');
+      body += obj + '\n';
+      offset += obj.length + 1;
+    });
+    const xrefOffset = offset;
+    const xref = `xref\n0 ${objects.length + 1}\n${xrefEntries.join('')}trailer << /Size ${objects.length + 1} /Root 1 0 R /Info 6 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+    const pdfString = pdf + body + xref;
+    return new Blob([pdfString], { type: 'application/pdf' });
+  }
+
+  function handleImageUpload(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) {
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          applyImageToGrid(img);
+        } catch (error) {
+          console.error(error);
+          alert('Unable to import the selected image.');
+        }
+        imageLoaderInput.value = '';
+      };
+      img.onerror = () => {
+        alert('Unable to read the selected image file.');
+        imageLoaderInput.value = '';
+      };
+      img.src = reader.result;
+    };
+    reader.onerror = () => {
+      alert('Unable to load the selected file.');
+      imageLoaderInput.value = '';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function applyImageToGrid(image) {
+    if (!rows || !cols) {
+      return;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = cols;
+    canvas.height = rows;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Canvas is not supported in this browser.');
+    }
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const scale = Math.min(canvas.width / image.width, canvas.height / image.height);
+    const drawWidth = image.width * scale;
+    const drawHeight = image.height * scale;
+    const dx = (canvas.width - drawWidth) / 2;
+    const dy = (canvas.height - drawHeight) / 2;
+    ctx.drawImage(image, dx, dy, drawWidth, drawHeight);
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    const totalPixels = rows * cols;
+    const brightnessValues = new Float32Array(totalPixels);
+    let sum = 0;
+    let min = 255;
+    let max = 0;
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const idx = (y * cols + x) * 4;
+        const r = imageData[idx];
+        const g = imageData[idx + 1];
+        const b = imageData[idx + 2];
+        const a = imageData[idx + 3];
+        const brightness = a === 0 ? 255 : 0.299 * r + 0.587 * g + 0.114 * b;
+        const pos = y * cols + x;
+        brightnessValues[pos] = brightness;
+        sum += brightness;
+        if (brightness < min) min = brightness;
+        if (brightness > max) max = brightness;
+      }
+    }
+    let threshold = (min + max) / 2;
+    if (max - min < 32) {
+      threshold = sum / totalPixels;
+    }
+    const newGrid = createEmptyGrid(rows, cols);
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const brightness = brightnessValues[y * cols + x];
+        newGrid[y][x] = brightness <= threshold ? 1 : 0;
+      }
+    }
+    grid = newGrid;
+    renderGrid();
+    updateStats();
+    updateInstructions();
+    commitHistory();
+  }
+
+  function renderRowPlan() {
+    rowPlanBody.innerHTML = '';
+    for (let idx = rows; idx >= 1; idx--) {
+      const planIndex = idx - 1;
+      const colorCode = rowColorPlan[planIndex] || 'A';
+      const colorName = colorCode === 'A' ? colorANameInput.value || 'Color A' : colorBNameInput.value || 'Color B';
+      const colorValue = colorCode === 'A' ? colorAInput.value : colorBInput.value;
+      const side = idx % 2 === 1 ? 'RS' : 'WS';
+
+      const tr = document.createElement('tr');
+      const rowTd = document.createElement('td');
+      rowTd.textContent = idx;
+
+      const sideTd = document.createElement('td');
+      sideTd.textContent = side;
+
+      const colorTd = document.createElement('td');
+      colorTd.className = 'row-plan__color';
+      const swatch = document.createElement('span');
+      swatch.className = 'row-plan__swatch';
+      swatch.style.background = colorValue;
+      const label = document.createElement('span');
+      label.textContent = `${colorName} (${colorCode})`;
+      colorTd.appendChild(swatch);
+      colorTd.appendChild(label);
+
+      const toggleTd = document.createElement('td');
+      toggleTd.className = 'right';
+      const toggleBtn = document.createElement('button');
+      toggleBtn.className = 'row-plan__toggle';
+      toggleBtn.type = 'button';
+      toggleBtn.textContent = 'Swap';
+      toggleBtn.addEventListener('click', () => {
+        rowColorPlan[planIndex] = colorCode === 'A' ? 'B' : 'A';
+        renderRowPlan();
+        updateRowLabels();
+        updateInstructions();
+        commitHistory();
+      });
+      toggleTd.appendChild(toggleBtn);
+
+      tr.appendChild(rowTd);
+      tr.appendChild(sideTd);
+      tr.appendChild(colorTd);
+      tr.appendChild(toggleTd);
+      rowPlanBody.appendChild(tr);
+    }
+  }
+
+  function updateRowLabels() {
+    const labels = rowLabelsEl.querySelectorAll('.row-label');
+    let idx = rows;
+    labels.forEach((label) => {
+      const planIndex = idx - 1;
+      const code = rowColorPlan[planIndex] || 'A';
+      label.innerHTML = `<span>${idx}</span><br><small>${code}</small>`;
+      idx -= 1;
+    });
+  }
+
+  function applySizeChange() {
+    const newRows = clamp(parseInt(rowsInput.value, 10) || rows, 1, 400);
+    const newCols = clamp(parseInt(colsInput.value, 10) || cols, 1, 400);
+    const newCellSize = clamp(parseInt(cellSizeInput.value, 10) || cellSize, 10, 40);
+    const newGridMode = gridModeSelect.value;
+
+    rowsInput.value = newRows;
+    colsInput.value = newCols;
+    cellSizeInput.value = newCellSize;
+
+    if (newRows === rows && newCols === cols && newCellSize === cellSize && newGridMode === gridMode) {
+      return;
+    }
+
+    const newGrid = createEmptyGrid(newRows, newCols);
+    for (let r = 0; r < Math.min(rows, newRows); r++) {
+      for (let c = 0; c < Math.min(cols, newCols); c++) {
+        newGrid[r][c] = grid[r][c];
+      }
+    }
+
+    const newPlan = createDefaultRowPlan(newRows);
+    for (let i = 0; i < Math.min(rowColorPlan.length, newPlan.length); i++) {
+      newPlan[i] = rowColorPlan[i];
+    }
+
+    rows = newRows;
+    cols = newCols;
+    cellSize = newCellSize;
+    gridMode = newGridMode;
+    grid = newGrid;
+    rowColorPlan = newPlan;
+
+    renderGrid();
+    renderRowPlan();
+    updateStats();
+    updateInstructions();
+    commitHistory();
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+  }
+
+  function clearAll() {
+    grid = createEmptyGrid(rows, cols);
+    renderGrid();
+    updateStats();
+    updateInstructions();
+    commitHistory();
+  }
+
+  function resetRowPlan() {
+    rowColorPlan = createDefaultRowPlan(rows);
+    renderRowPlan();
+    updateRowLabels();
+    updateInstructions();
+    commitHistory();
+  }
+
+  function getSnapshot() {
+    return {
+      rows,
+      cols,
+      cellSize,
+      gridMode,
+      grid: grid.map((row) => row.slice()),
+      rowColorPlan: rowColorPlan.slice(),
+      colorA: colorAInput.value,
+      colorB: colorBInput.value,
+      colorAName: colorANameInput.value,
+      colorBName: colorBNameInput.value,
+    };
+  }
+
+  function snapshotsEqual(a, b) {
+    if (!a || !b) return false;
+    if (a.rows !== b.rows || a.cols !== b.cols || a.cellSize !== b.cellSize || a.gridMode !== b.gridMode) return false;
+    if (a.colorA !== b.colorA || a.colorB !== b.colorB || a.colorAName !== b.colorAName || a.colorBName !== b.colorBName) return false;
+    if (a.rowColorPlan.length !== b.rowColorPlan.length) return false;
+    for (let i = 0; i < a.rowColorPlan.length; i++) {
+      if (a.rowColorPlan[i] !== b.rowColorPlan[i]) return false;
+    }
+    if (a.grid.length !== b.grid.length) return false;
+    for (let r = 0; r < a.grid.length; r++) {
+      const rowA = a.grid[r];
+      const rowB = b.grid[r];
+      if (rowA.length !== rowB.length) return false;
+      for (let c = 0; c < rowA.length; c++) {
+        if (rowA[c] !== rowB[c]) return false;
+      }
+    }
+    return true;
+  }
+
+  function loadSnapshot(snapshot) {
+    rows = snapshot.rows;
+    cols = snapshot.cols;
+    cellSize = snapshot.cellSize;
+    gridMode = snapshot.gridMode;
+    grid = snapshot.grid.map((row) => row.slice());
+    rowColorPlan = snapshot.rowColorPlan.slice();
+    colorAInput.value = snapshot.colorA;
+    colorBInput.value = snapshot.colorB;
+    colorANameInput.value = snapshot.colorAName;
+    colorBNameInput.value = snapshot.colorBName;
+
+    rowsInput.value = rows;
+    colsInput.value = cols;
+    cellSizeInput.value = cellSize;
+    gridModeSelect.value = gridMode;
+
+    renderGrid();
+    renderRowPlan();
+    updateStats();
+    updateInstructions();
+  }
+
+  function commitHistory() {
+    const snapshot = getSnapshot();
+    history = history.slice(0, historyIndex + 1);
+    const last = history[history.length - 1];
+    if (last && snapshotsEqual(last, snapshot)) {
+      historyIndex = history.length - 1;
+      updateUndoRedoButtons();
+      return;
+    }
+    history.push(snapshot);
+    historyIndex = history.length - 1;
+    updateUndoRedoButtons();
+  }
+
+  function undo() {
+    if (historyIndex <= 0) return;
+    historyIndex -= 1;
+    const snapshot = history[historyIndex];
+    loadSnapshot(snapshot);
+    updateUndoRedoButtons();
+  }
+
+  function redo() {
+    if (historyIndex >= history.length - 1) return;
+    historyIndex += 1;
+    const snapshot = history[historyIndex];
+    loadSnapshot(snapshot);
+    updateUndoRedoButtons();
+  }
+
+  function updateUndoRedoButtons() {
+    undoBtn.disabled = historyIndex <= 0;
+    redoBtn.disabled = historyIndex >= history.length - 1;
+  }
+
+  function handleColorChange() {
+    renderRowPlan();
+    updateInstructions();
+    commitHistory();
+  }
+
+  function handleColorNameChange() {
+    renderRowPlan();
+    updateInstructions();
+    commitHistory();
+  }
+
+  function handleGridModeChange() {
+    gridMode = gridModeSelect.value;
+    renderGrid();
+    updateInstructions();
+    commitHistory();
+  }
+
+  applySizeBtn.addEventListener('click', applySizeChange);
+  clearAllBtn.addEventListener('click', clearAll);
+  undoBtn.addEventListener('click', undo);
+  redoBtn.addEventListener('click', redo);
+  resetPlanBtn.addEventListener('click', resetRowPlan);
+  colorAInput.addEventListener('change', handleColorChange);
+  colorBInput.addEventListener('change', handleColorChange);
+  colorANameInput.addEventListener('change', handleColorNameChange);
+  colorBNameInput.addEventListener('change', handleColorNameChange);
+  gridModeSelect.addEventListener('change', handleGridModeChange);
+  if (importImageBtn && imageLoaderInput) {
+    importImageBtn.addEventListener('click', () => imageLoaderInput.click());
+    imageLoaderInput.addEventListener('change', handleImageUpload);
+  }
+  if (exportTxtBtn) {
+    exportTxtBtn.addEventListener('click', exportInstructionsAsTxt);
+  }
+  if (exportPdfBtn) {
+    exportPdfBtn.addEventListener('click', exportInstructionsAsPdf);
+  }
+  document.addEventListener('pointerup', handlePointerUp);
+  document.addEventListener('pointercancel', handlePointerUp);
+  document.addEventListener('keydown', handleKeyDown);
+  gridEl.addEventListener('contextmenu', (event) => event.preventDefault());
+
+  renderGrid();
+  renderRowPlan();
+  updateStats();
+  updateInstructions();
+  commitHistory();
+</script>
+</body>
+</html>
